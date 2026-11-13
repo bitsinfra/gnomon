@@ -1,0 +1,206 @@
+# The test matrix: the SQL core and the C module on PostgreSQL 15-18; on 18 also the Go CLI, MCP
+# server and archiver, the GitHub Action's script, the tutorial, the SDKs and the language
+# bindings (Python, Node, Ruby and a real Rails app, Go, Java, Elixir, .NET, PHP). Every job runs
+# the same scripts a developer runs locally (README, "Tests"). The query-plan checks are part of
+# the SQL suite (test/sql/10_plans.sql), so they run on every major version. A nightly run adds a
+# long merge fuzz of a million cases.
+name: ci
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *"
+
+jobs:
+  postgres:
+    name: PostgreSQL ${{ matrix.pg }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: [15, 16, 17, 18]
+    env:
+      LC_ALL: C.UTF-8
+      PG_CONFIG: /usr/lib/postgresql/${{ matrix.pg }}/bin/pg_config
+      GNOMON_TEST_REQUIRE: "1"   # Go tests fail, not skip, without a server
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL ${{ matrix.pg }} (PGDG)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-${{ matrix.pg }} postgresql-server-dev-${{ matrix.pg }}
+          # the pg_upgrade test upgrades from every older major (on the 18 job)
+          if [ "${{ matrix.pg }}" = 18 ]; then sudo apt-get install -y postgresql-15 postgresql-16 postgresql-17; fi
+          sudo systemctl stop postgresql || true
+          echo "/usr/lib/postgresql/${{ matrix.pg }}/bin" >> "$GITHUB_PATH"
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: cli/go.mod
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build and install
+        # (sudo resets the environment: PG_CONFIG goes on the command line)
+        run: |
+          make PG_CONFIG="$PG_CONFIG" && sudo make install PG_CONFIG="$PG_CONFIG"
+          make -C src/c PG_CONFIG="$PG_CONFIG" && sudo make -C src/c install PG_CONFIG="$PG_CONFIG"
+          make dev PG_CONFIG="$PG_CONFIG" && make -C src/c dev PG_CONFIG="$PG_CONFIG"
+      - name: Python environment (integrations, and the C module's two-session tests)
+        run: |
+          python3 -m venv build/venv
+          build/venv/bin/pip install -q -e 'integrations/python[sqlalchemy,django,test]'
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - name: Install the dependencies for the connection pooler tests
+        working-directory: sdk/ts
+        run: npm ci --no-audit --no-fund
+      - name: SQL core
+        env:
+          PG_OLD_BINS: /usr/lib/postgresql/15/bin /usr/lib/postgresql/16/bin /usr/lib/postgresql/17/bin
+          GNOMON_SKIP_EXTERNAL: "1"   # the bindings, Kafka and dbt run in steps of their own below
+        run: ./test/run.sh
+      - name: C module
+        env:
+          GNOMON_SKIP_EXTERNAL: "1"
+        run: src/c/test/run.sh
+      - name: CLI, MCP server, archiver
+        if: matrix.pg == 18
+        run: (cd cli && go test ./... && go build -o ../build/gnomon ./cmd/gnomon)
+      - name: Go binding
+        if: matrix.pg == 18
+        run: (cd integrations/go && go test ./...)
+      - name: GitHub Action script
+        if: matrix.pg == 18
+        run: bash action/test.sh
+      - name: The tutorial, as written (non-superuser logins)
+        if: matrix.pg == 18
+        run: |
+          export PGHOST=$PWD/build PGPORT=54329
+          psql -U postgres -d postgres -c "drop database if exists shop" -c "create database shop"
+          psql -U postgres -d shop -f examples/shop.sql
+          GNOMON=$PWD/build/gnomon PYTHON=build/venv/bin/python examples/tutorial.sh shop
+      - name: Python integrations
+        if: matrix.pg == 18
+        # (installed with pip -e: its pytest11 entry point loads the gnomon plugin)
+        run: build/venv/bin/python -m pytest integrations/python/tests
+      - name: Python SDK against the C module
+        if: matrix.pg == 18
+        run: GNOMON_SDK_PORT=54330 build/venv/bin/python -m pytest integrations/python/tests/test_sdk.py
+      - name: Node integrations
+        if: matrix.pg == 18
+        run: (cd integrations/node && npm ci && npm test)
+      - name: TypeScript SDK (conformance, runs, adapters; Node runs the TypeScript directly)
+        if: matrix.pg == 18
+        run: (cd sdk/ts && npm run build && npm test)
+      - name: TypeScript SDK against the C module
+        if: matrix.pg == 18
+        run: (cd sdk/ts && GNOMON_SDK_PORT=54330 npm test)
+      - uses: oven-sh/setup-bun@v2
+        if: matrix.pg == 18
+      - name: TypeScript SDK through Bun's client (a cluster on 127.0.0.1)
+        if: matrix.pg == 18
+        run: bash test/shell/bun_sdk.sh
+      - uses: ruby/setup-ruby@v1
+        if: matrix.pg == 18
+        with:
+          ruby-version: "3.3"
+      - name: Ruby integrations (real ActiveRecord)
+        if: matrix.pg == 18
+        run: |
+          gem install --no-document pg rspec activerecord
+          rspec -I integrations/ruby/lib integrations/ruby/spec
+      - name: A real Rails app on a branch (rails new, a scaffold, requests through the middleware)
+        if: matrix.pg == 18
+        run: |
+          gem install --no-document rails
+          bash integrations/ruby/rails_ci.sh
+          PGPORT=54330 bash integrations/ruby/rails_ci.sh
+      - uses: actions/setup-java@v4
+        if: matrix.pg == 18
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: erlef/setup-beam@v1
+        if: matrix.pg == 18
+        with:
+          otp-version: "28"
+          elixir-version: "1.19"
+      - uses: actions/setup-dotnet@v4
+        if: matrix.pg == 18
+        with:
+          dotnet-version: "8.0.x"
+      - uses: shivammathur/setup-php@v2
+        if: matrix.pg == 18
+        with:
+          php-version: "8.3"
+          extensions: pdo_pgsql
+          tools: composer
+      - name: Language bindings against a real database (Java, Elixir, .NET, PHP and Laravel)
+        if: matrix.pg == 18
+        run: |
+          bash integrations/elixir/test.sh
+          (cd integrations/elixir && mix local.hex --force && mix local.rebar --force && mix deps.get)
+          (cd integrations/laravel && composer install -q)
+          bash test/shell/bindings.sh
+      - name: The Kafka sink against real brokers (3.9 and 4.1, in Docker)
+        if: matrix.pg == 18
+        run: bash test/shell/kafka.sh
+      - name: The dbt package through dbt
+        if: matrix.pg == 18
+        run: |
+          python3 -m venv build/venv-dbt && build/venv-dbt/bin/pip install -q dbt-postgres
+          bash test/shell/dbt.sh
+      - name: Long merge fuzz (nightly)
+        if: matrix.pg == 18 && github.event_name == 'schedule'
+        run: |
+          psql -X -q -h "$PWD/build" -p 54329 -U postgres -d postgres -c "create database fuzz"
+          psql -X -q -v ON_ERROR_STOP=1 -h "$PWD/build" -p 54329 -U postgres -d fuzz -v fuzz_n=1000000 \
+            -c "create extension gnomon" -f test/helpers.sql -f test/sql/08_merge_fuzz.sql
+      - name: Test output
+        if: failure()
+        run: for f in build/test-out/*.out; do echo "=== $f"; tail -40 "$f"; done
+
+  pg_tle:
+    # The pg_tle install form (RDS, Aurora), on a server with pg_tle and without gnomon's own files
+    # (pg_tle refuses a TLE named like a file-based extension, and a provider has none).
+    name: pg_tle package (PostgreSQL 18)
+    runs-on: ubuntu-24.04
+    env:
+      LC_ALL: C.UTF-8
+      PG_CONFIG: /usr/lib/postgresql/18/bin/pg_config
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL 18 (PGDG)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-18 postgresql-server-dev-18 libkrb5-dev
+          sudo systemctl stop postgresql || true
+          echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
+      - name: Build pg_tle
+        run: |
+          git clone --depth 1 --branch v1.5.3 https://github.com/aws/pg_tle.git "$RUNNER_TEMP/pg_tle"
+          make -C "$RUNNER_TEMP/pg_tle" PG_CONFIG="$PG_CONFIG" && sudo make -C "$RUNNER_TEMP/pg_tle" install PG_CONFIG="$PG_CONFIG"
+      - name: pg_tle package
+        run: |
+          make PG_CONFIG="$PG_CONFIG"
+          bash test/shell/pgtle.sh
+
+  docs:
+    # The documentation site builds, and every page the sidebar names exists.
+    name: Documentation
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "24" }
+      - name: Build the documentation
+        run: |
+          cd docs
+          npm ci --no-audit --no-fund
+          npm run build

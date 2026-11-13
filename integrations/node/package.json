@@ -1,0 +1,41 @@
+{
+  "name": "@bitsinfra/gnomon-postgres",
+  "version": "1.0.1",
+  "description": "Branches, time travel and merges for PostgreSQL apps: node-postgres, Prisma, Drizzle and Jest/Vitest helpers for the gnomon extension",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "PostgreSQL",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitsinfra/gnomon.git",
+    "directory": "integrations/node"
+  },
+  "homepage": "https://gnomon.bitsinfra.com/",
+  "bugs": {
+    "url": "https://github.com/bitsinfra/gnomon/issues"
+  },
+  "scripts": {
+    "pretest": "prisma generate --schema test/prisma/schema.prisma",
+    "test": "node --test test/*.test.js"
+  },
+  "peerDependencies": {
+    "pg": ">=8"
+  },
+  "devDependencies": {
+    "@neondatabase/serverless": "^1.2.0",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "drizzle-orm": "0.45.4",
+    "kysely": "^0.29.9",
+    "pg": "^8.13.0",
+    "prisma": "7.10.1",
+    "ws": "^8.23.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts"
+  ]
+}

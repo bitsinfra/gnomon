@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>Gnomon</PackageId>
+    <Version>1.0.1</Version>
+    <PackageLicenseExpression>PostgreSQL</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/bitsinfra/gnomon</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/bitsinfra/gnomon.git</RepositoryUrl>
+    <Description>Branches of a PostgreSQL database with gnomon, from Npgsql.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql" Version="8.0.5" />
+  </ItemGroup>
+</Project>

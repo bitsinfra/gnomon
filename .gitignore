@@ -1,0 +1,42 @@
+build/
+*.o
+*.so
+*.dylib
+*.bc
+/sql/gnomon--*.sql
+cli/gnomon
+.DS_Store
+node_modules
+build/venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+integrations/node/test/prisma/client/
+# build outputs of the language bindings
+integrations/java/target/
+integrations/elixir/_build/
+integrations/elixir/deps/
+integrations/dotnet/**/bin/
+integrations/dotnet/**/obj/
+integrations/laravel/vendor/
+integrations/laravel/composer.lock
+# dbt runs of the integration tests
+dbt/**/target/
+dbt/**/logs/
+dbt/**/dbt_packages/
+dbt/**/.user.yml
+.phpunit.result.cache
+.phpunit.cache/
+
+# the documentation site (docs/)
+/docs/node_modules/
+/docs/.next/
+/docs/.source/
+/docs/.content/
+/docs/out/
+/docs/next-env.d.ts
+/docs/*.tsbuildinfo
+
+/sdk/ts/dist/
+/integrations/python/dist/
+/integrations/python/build/

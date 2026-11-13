@@ -1,0 +1,69 @@
+# Prometheus alert rules for gnomon. The metrics come from gnomon.metrics(), served
+# on /metrics by gnomon serve, or read by postgres_exporter from that function.
+groups:
+  - name: gnomon
+    rules:
+      - alert: GnomonNoTicks
+        expr: gnomon_tick_lag_seconds > 60
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "No gnomon clock tick for {{ $value | humanizeDuration }}"
+          description: "Reads by timestamp resolve to an older moment and scheduled changes wait. Check the heartbeat (C worker, pg_cron or gnomon daemon)."
+      - alert: GnomonDefaultPartitionRows
+        expr: gnomon_default_partition_rows > 0
+        for: 30m
+        labels: { severity: warning }
+        annotations:
+          summary: "Versions of {{ $labels.table }} are landing in the default partition"
+          description: "The heartbeat creates partitions ahead of need; it is not running, or part_span is too small for the write rate."
+      - alert: GnomonConsumerLag
+        expr: gnomon_consumer_lag_seconds > 600
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Feed consumer {{ $labels.consumer }} is {{ $value | humanizeDuration }} behind"
+          description: "A consumer that falls behind holds history back from retention."
+      - alert: GnomonSinkDeadBatches
+        expr: gnomon_sink_dead_batches > 0
+        labels: { severity: critical }
+        annotations:
+          summary: "Sink {{ $labels.sink }} gave up on a batch and paused"
+          description: "gnomon sink dead lists the batches; fix the target, then gnomon sink resume."
+      - alert: GnomonMergeFailed
+        expr: increase(gnomon_merges{status="failed"}[15m]) > 0
+        labels: { severity: warning }
+        annotations:
+          summary: "A gnomon merge failed"
+          description: "See gnomon log and gnomon.merge; a failed incremental merge resumes or is undone."
+      - alert: GnomonThawFailed
+        expr: gnomon_thaw_requests{status="failed"} > 0
+        labels: { severity: warning }
+        annotations:
+          summary: "Restoring archived history for a read failed"
+          description: "gnomon thaw status shows the error (store credentials, a missing file)."
+      - alert: GnomonLedgerNotSealed
+        expr: gnomon_ledger_blocks > 0 and gnomon_ledger_last_seal_seconds > 3600
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "The gnomon ledger has not been sealed for {{ $value | humanizeDuration }}"
+          description: "The heartbeat seals ledger blocks; run gnomon ledger verify after it is back."
+      - alert: GnomonLedgerVerificationFailed
+        expr: gnomon_ledger_verification_ok == 0
+        labels: { severity: critical }
+        annotations:
+          summary: "The last gnomon ledger verification failed"
+          description: "gnomon ledger verify names the first block that does not match: history was changed outside gnomon, or a block was damaged."
+      - alert: GnomonBranchesOverQuota
+        expr: gnomon_branches_over_quota > 0
+        for: 1h
+        labels: { severity: info }
+        annotations:
+          summary: "{{ $value }} gnomon branch(es) over quota refuse writes"
+      - alert: GnomonOpenConflicts
+        expr: gnomon_open_conflicts > 0
+        for: 1d
+        labels: { severity: info }
+        annotations:
+          summary: "{{ $value }} merge conflict(s) unresolved for a day"

@@ -1,0 +1,17 @@
+{{define "preview"}}{{template "head" .}}
+<h1>Merging {{.D.branch}}{{if .D.into}} into {{.D.into}}{{end}}</h1>
+{{if .D.conflicts}}<h2>Conflicts of the stopped merge</h2>
+<table><tr><th>table</th><th>key</th><th>column</th><th>base</th><th>ours</th><th>theirs</th><th>resolution</th></tr>
+{{range .D.conflicts}}<tr><td>{{.table}}</td><td><code>{{cell .key}}</code></td><td>{{.col}}</td><td><code>{{cell .base}}</code></td><td><code>{{cell .ours}}</code></td><td><code>{{cell .theirs}}</code></td>
+<td>{{if .resolution}}{{.resolution}} {{cell .value}}{{else}}<form class="inline" method="post" action="/do/resolve">{{template "csrf" $.CSRF}}<input type="hidden" name="id" value="{{.id}}">
+<select name="choice"><option>ours</option><option>theirs</option><option>base</option><option>value</option></select> <input name="value" placeholder="value (JSON)" size="10"> <button>resolve</button></form>{{end}}</td></tr>{{end}}</table>
+{{with index .D.conflicts 0}}<form class="inline" method="post" action="/do/resolve-all">{{template "csrf" $.CSRF}}<input type="hidden" name="merge" value="{{.merge_id}}"><select name="choice"><option>ours</option><option>theirs</option></select> <button>resolve all</button></form>
+<form class="inline" method="post" action="/do/merge">{{template "csrf" $.CSRF}}<input type="hidden" name="branch" value="{{$.D.branch}}"><input type="hidden" name="resume" value="{{.merge_id}}"><button class="primary">Resume the merge</button></form>{{end}}{{end}}
+<h2>Plan</h2>
+<table><tr><th>table</th><th>key</th><th>action</th><th>base</th><th>ours</th><th>theirs</th><th>result</th></tr>
+{{range .D.plan}}<tr class="{{.action}}"><td>{{.table}}</td><td><code>{{cell .key}}</code></td><td>{{.action}}{{if .conflicts}} <span class="bad">conflict</span>{{end}}</td>
+<td><code>{{cell .base}}</code></td><td><code>{{cell .ours}}</code></td><td><code>{{cell .theirs}}</code></td><td><code>{{cell .result}}</code></td></tr>
+{{else}}<tr><td colspan="7" class="mute">nothing to merge</td></tr>{{end}}</table>
+{{if .Who}}<form method="post" action="/do/merge" style="margin-top: 12px">{{template "csrf" .CSRF}}<input type="hidden" name="branch" value="{{.D.branch}}"><input type="hidden" name="into" value="{{.D.into}}">
+<label><input type="checkbox" name="close"> close the branch afterwards</label> <button class="primary">Merge</button></form>{{end}}
+{{template "foot" .}}{{end}}

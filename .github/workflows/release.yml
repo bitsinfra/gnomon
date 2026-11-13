@@ -1,0 +1,126 @@
+name: release
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Verify release tag and version
+        if: github.event_name == 'push'
+        env:
+          RELEASE_ENABLED: ${{ vars.GNOMON_PUBLIC_RELEASE_ENABLED }}
+          RELEASE_SIGNERS: ${{ vars.GNOMON_RELEASE_SSH_SIGNERS }}
+        run: |
+          test "$RELEASE_ENABLED" = true
+          version=$(sed -n "s/^default_version = '\(.*\)'/\1/p" gnomon.control)
+          test "$GITHUB_REF_NAME" = "v$version"
+          git merge-base --is-ancestor HEAD origin/main
+          # The checkout action may set the local tag ref to its peeled commit.
+          git fetch --no-tags origin "+refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+          printf '%s\n' "$RELEASE_SIGNERS" > "$RUNNER_TEMP/signers"
+          git -c gpg.ssh.allowedSignersFile="$RUNNER_TEMP/signers" verify-tag "$GITHUB_REF_NAME"
+          test "$(git rev-parse "$GITHUB_REF_NAME^{commit}")" = "$(git rev-parse HEAD)"
+      - uses: actions/setup-go@v5
+        with: { go-version-file: cli/go.mod }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.13' }
+      - name: Build and install the release artifacts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-server-dev-18
+          export PG_CONFIG=/usr/lib/postgresql/18/bin/pg_config
+          python -m pip install build
+          tools/package-release.sh "$RUNNER_TEMP/dist"
+          tools/smoke-release.sh "$RUNNER_TEMP/dist"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gnomon-release
+          path: ${{ runner.temp }}/dist/
+          if-no-files-found: error
+  image:
+    needs: package
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+        if: github.event_name == 'push'
+      - uses: docker/setup-buildx-action@v3
+      - name: Build and test the image
+        run: |
+          docker build -f docker/Dockerfile -t gnomon:check .
+          docker run --rm gnomon:check gnomon version
+          docker run -d --name gnomon-test -e POSTGRES_PASSWORD=local-test gnomon:check
+          for i in {1..60}; do
+            if docker exec gnomon-test pg_isready -h 127.0.0.1 -U postgres; then break; fi
+            sleep 1
+          done
+          docker exec gnomon-test psql -v ON_ERROR_STOP=1 -U postgres -c "select gnomon.create_branch('image-test');"
+      - uses: docker/login-action@v3
+        if: github.event_name == 'push'
+        with: { registry: ghcr.io, username: "${{ github.actor }}", password: "${{ github.token }}" }
+      - uses: docker/build-push-action@v6
+        if: github.event_name == 'push'
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: mode=max
+          tags: ghcr.io/bitsinfra/gnomon/postgres:${{ github.ref_name }},ghcr.io/bitsinfra/gnomon/postgres:latest
+  npm:
+    if: github.event_name == 'push'
+    needs: [package, image]
+    runs-on: ubuntu-24.04
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, registry-url: 'https://registry.npmjs.org' }
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: gnomon-release, path: dist }
+      - run: node tools/publish-npm.mjs dist/*.tgz
+  pypi:
+    if: github.event_name == 'push'
+    needs: [package, image]
+    runs-on: ubuntu-24.04
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: gnomon-release, path: dist }
+      - run: mkdir python-dist && cp dist/*.whl dist/gnomon_postgres-*.tar.gz python-dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with: { packages-dir: python-dist }
+  github-release:
+    if: github.event_name == 'push'
+    needs: [package, image]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: gnomon-release, path: dist }
+      - uses: actions/attest-build-provenance@v2
+        with: { subject-path: 'dist/*' }
+      - env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Gnomon ${GITHUB_REF_NAME#v}" --notes "CLI, packages and SQL installers. See https://gnomon.bitsinfra.com/installation/ for installation instructions."

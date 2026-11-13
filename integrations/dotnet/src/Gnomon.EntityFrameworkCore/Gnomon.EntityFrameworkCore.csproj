@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>Gnomon.EntityFrameworkCore</PackageId>
+    <Version>1.0.1</Version>
+    <PackageLicenseExpression>PostgreSQL</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/bitsinfra/gnomon</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/bitsinfra/gnomon.git</RepositoryUrl>
+    <Description>EF Core interceptors that put a DbContext's connections or transactions on a gnomon branch.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.10" />
+    <ProjectReference Include="../Gnomon/Gnomon.csproj" />
+  </ItemGroup>
+</Project>

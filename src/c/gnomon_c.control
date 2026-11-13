@@ -1,0 +1,7 @@
+# SQL-callable parts of the gnomon C module (the library itself is loaded with shared_preload_libraries)
+comment = 'Gnomon C module: C versioning trigger'
+default_version = '1.0.1'
+module_pathname = '$libdir/gnomon_c'
+requires = 'gnomon'
+relocatable = false
+superuser = true

@@ -1,0 +1,55 @@
+# Gnomon
+
+> Git for Postgres data, built for agents. A PostgreSQL extension that gives your database
+> branches, history, merges and undo. Give an agent its own branch of the real database as a
+> connection string, see every field it changed, merge it when it's right, undo it if it wasn't.
+> Everything is plain SQL inside the Postgres you already have; an optional C module (gnomon_c)
+> adds transparent routing and speed.
+
+Facts a coding agent needs:
+
+- Everything is in schema `gnomon`. A session picks a branch with `select gnomon.use('b')` (or
+  `gnomon.begin('b')` for one transaction behind a pooler); main is `gnomon.use('main')`. A
+  connection string can start on a branch: `gnomon.connection_options('b')` gives the `options`.
+- Without the C module, a branch is read through routing views on the `search_path`
+  (`gnomon_r_<schema>`): use unqualified table names. `INSERT ... ON CONFLICT` and
+  `SELECT ... FOR UPDATE` do not work on a branch in that mode (write the upsert as UPDATE then
+  INSERT ... WHERE NOT EXISTS). `select gnomon.status()` says where a session is and how.
+- DDL on a branch goes through `select gnomon.ddl('alter table t add column c text')` (or
+  `gnomon migrate <branch> -- files`); plain DDL from a branch session is refused. It takes
+  additions, constraints, renames, drops and type changes (with `up`/`down` expressions), and
+  refuses changes to key columns and primary keys by name.
+- Every gnomon error's hint ends with `[gnomon:<slug>]`; `gnomon.explain_error(sqlstate, message)`
+  explains one. 40001 means retry the transaction.
+- Review: `gnomon.diff('b')`, `gnomon.merge_preview('b')`, `gnomon.merge('b')`,
+  `gnomon.undo_merge(id)`; change requests and approvals (`gnomon.open_change_request`,
+  `gnomon.review(cr, 'approve')`); an agent on a plain connection says it is finished with
+  `select gnomon.done('summary')`.
+- History: `gnomon.history(tbl, key, branch)`, `gnomon.blame(...)`, `gnomon.changes(since)`,
+  `gnomon.use('main', '<timestamp | tag:name | coordinate>')`.
+- An agent of your own: `gnomon agent create <name>` prints a confined role, its branch, a
+  connection string and an MCP configuration. It can write only its branch; main is refused by the
+  database, not by a wrapper.
+
+## Docs
+
+- [Introduction](https://gnomon.bitsinfra.com/)
+- [Installation](https://gnomon.bitsinfra.com/installation/), [Tutorial](https://gnomon.bitsinfra.com/tutorial/), [Concepts](https://gnomon.bitsinfra.com/concepts/)
+- [Agents](https://gnomon.bitsinfra.com/agents/), [Runs and the SDKs](https://gnomon.bitsinfra.com/sdk/), [MCP server](https://gnomon.bitsinfra.com/mcp/)
+- [Branches](https://gnomon.bitsinfra.com/branches/), [Schema changes](https://gnomon.bitsinfra.com/schema-changes/), [Review](https://gnomon.bitsinfra.com/review/)
+- [History](https://gnomon.bitsinfra.com/history/), [Change feed](https://gnomon.bitsinfra.com/feed/)
+- [SQL reference](https://gnomon.bitsinfra.com/sql-reference/), [CLI reference](https://gnomon.bitsinfra.com/cli/), [Errors](https://gnomon.bitsinfra.com/errors/)
+- [Operations](https://gnomon.bitsinfra.com/operations/), [Security](https://gnomon.bitsinfra.com/security/)
+
+## SDKs
+
+- [TypeScript, @bitsinfra/gnomon](https://gnomon.bitsinfra.com/sdks/typescript/): runs (a branch per task) for your own agents and code, review, adapters for node-postgres, postgres.js, Drizzle, Prisma, and agent frameworks.
+- [Python, gnomon-postgres](https://gnomon.bitsinfra.com/sdks/python/): the same API, sync and async; pytest fixtures and snapshots.
+- [The wire protocol every SDK implements](https://gnomon.bitsinfra.com/sdks/specification/)
+- [Node](https://gnomon.bitsinfra.com/bindings/node/), [Ruby](https://gnomon.bitsinfra.com/bindings/ruby/), [Go](https://gnomon.bitsinfra.com/bindings/go/), [Java](https://gnomon.bitsinfra.com/bindings/java/), [Elixir](https://gnomon.bitsinfra.com/bindings/elixir/), [.NET](https://gnomon.bitsinfra.com/bindings/dotnet/), [PHP](https://gnomon.bitsinfra.com/bindings/php/)
+
+## Tools
+
+- `gnomon` CLI: branch, diff, merge, log, undo, bisect, migrate, schema, agent, serve (review app, /metrics, MCP over HTTP), mcp (stdio), daemon, archive.
+- MCP server: `gnomon mcp` (stdio, a confined role's DSN) or `gnomon mcp --http` (agent tokens).
+- [GitHub Action](https://gnomon.bitsinfra.com/github-action/): a database branch per pull request.

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none" role="img" aria-label="Gnomon">
+  <title>Gnomon</title>
+  <rect x="0" y="0" width="5" height="5" fill="#1d1c21"/>
+  <rect x="6.5" y="0" width="5" height="5" fill="#1d1c21"/>
+  <rect x="13.3" y="0.3" width="4.4" height="4.4" stroke="#1d1c21" stroke-opacity="0.3" stroke-width="0.6"/>
+  <rect x="6.8" y="6.8" width="4.4" height="4.4" stroke="#d8400f" stroke-width="0.9"/>
+  <rect x="13.3" y="6.8" width="4.4" height="4.4" stroke="#d8400f" stroke-width="0.9"/>
+  <rect x="0" y="13" width="5" height="5" fill="#1d1c21"/>
+  <rect x="6.5" y="13" width="5" height="5" fill="#1d1c21"/>
+  <rect x="13.3" y="13.3" width="4.4" height="4.4" stroke="#1d1c21" stroke-opacity="0.3" stroke-width="0.6"/>
+</svg>

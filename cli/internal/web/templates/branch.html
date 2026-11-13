@@ -1,0 +1,22 @@
+{{define "branch"}}{{template "head" .}}
+<h1>{{.D.name}}</h1>
+{{with .D.info}}<p class="mute">{{.kind}} branch of {{.parent}} · {{.status}} · by {{.created_by}} · {{.behind}} change(s) behind main{{if .note}} · {{.note}}{{end}}</p>{{end}}
+<p><a href="/preview?branch={{.D.name}}">merge preview</a> · <a href="/graph?branch={{.D.name}}">graph</a> · <a href="/log?branch={{.D.name}}">log</a></p>
+{{if .D.warnings}}<h2>Warnings</h2><table>{{range .D.warnings}}<tr><td>{{.kind}}</td><td>{{.table}}</td><td><code>{{cell .key}}</code></td><td>{{.col}}</td></tr>{{end}}</table>{{end}}
+<h2>Changes</h2>
+<table><tr><th>table</th><th>inserts</th><th>updates</th><th>deletes</th></tr>
+{{range .D.summary}}<tr><td><a href="/branch?name={{$.D.name}}&table={{json .table}}">{{.table}}</a>{{if .outbox}} <span class="tag">runs on merge</span>{{end}}</td><td>{{.inserts}}</td><td>{{.updates}}</td><td>{{.deletes}}</td></tr>
+{{else}}<tr><td colspan="4" class="mute">no changes</td></tr>{{end}}</table>
+{{if .D.table}}<h2>{{.D.table}}{{if .D.outbox}} <span class="tag">rows here run on merge</span>{{end}}</h2>
+<form method="get"><input type="hidden" name="name" value="{{.D.name}}"><input type="hidden" name="table" value="{{.D.table}}">
+<select name="kind"><option value="">every kind</option><option {{if eq .D.kind "insert"}}selected{{end}}>insert</option><option {{if eq .D.kind "update"}}selected{{end}}>update</option><option {{if eq .D.kind "delete"}}selected{{end}}>delete</option></select>
+<input name="key" placeholder="key contains" value="{{.D.keyq}}"><button>filter</button></form>
+<table><tr><th>key</th><th>kind</th><th>column</th><th>old</th><th>new</th></tr>
+{{range .D.rows}}<tr class="{{.kind}}"><td><a href="/row?table={{json .table}}&key={{cell .key}}&branch={{$.D.name}}"><code>{{cell .key}}</code></a></td><td>{{.kind}}</td><td>{{.col}}</td><td><code>{{cell .old}}</code></td><td><code>{{cell .new}}</code></td></tr>{{end}}</table>
+{{if .D.next}}<p><a href="/branch?name={{.D.name}}&table={{.D.table}}&after={{.D.next}}">next page</a></p>{{end}}{{end}}
+{{if .Who}}<h2>Ask for review</h2>
+<form method="post" action="/do/open-cr" style="display: grid; gap: 6px; max-width: 520px">{{template "csrf" .CSRF}}
+<input type="hidden" name="branch" value="{{.D.name}}"><input name="title" placeholder="title" required><textarea name="body" rows="3" placeholder="what and why"></textarea>
+<button>Open a change request</button></form>
+<form method="post" action="/do/drop" style="margin-top: 16px">{{template "csrf" .CSRF}}<input type="hidden" name="branch" value="{{.D.name}}"><button onclick="return confirm('Drop this branch and what it holds?')">Drop branch</button></form>{{end}}
+{{template "foot" .}}{{end}}

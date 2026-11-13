@@ -1,0 +1,7 @@
+# Gnomon: history, branches and merges inside PostgreSQL
+comment = 'Version history, time travel, branches and three-way merges for PostgreSQL tables'
+default_version = '1.0.1'
+schema = gnomon
+relocatable = false
+superuser = true
+trusted = false

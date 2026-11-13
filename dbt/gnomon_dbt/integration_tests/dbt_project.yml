@@ -1,0 +1,10 @@
+# Runs the gnomon_dbt package for real (test/shell/dbt.sh): a gnomon_history model, a model read
+# at a tag, and one read on a branch.
+name: gnomon_dbt_integration_tests
+version: "1.0.0"
+config-version: 2
+profile: gnomon_it
+model-paths: ["models"]
+models:
+  gnomon_dbt_integration_tests:
+    +schema: it

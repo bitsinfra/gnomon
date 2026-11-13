@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gnomon-postgres"
+version = "1.0.1"
+description = "Branches, time travel and merges for PostgreSQL apps: psycopg helpers, SQLAlchemy, Django and pytest fixtures for the gnomon extension"
+requires-python = ">=3.9"
+dependencies = ["psycopg>=3.1"]
+license = "PostgreSQL"
+license-files = ["LICENSE"]
+readme = "README.md"
+
+[project.urls]
+Homepage = "https://gnomon.bitsinfra.com/"
+Repository = "https://github.com/bitsinfra/gnomon"
+Issues = "https://github.com/bitsinfra/gnomon/issues"
+
+[project.optional-dependencies]
+sqlalchemy = ["sqlalchemy>=2"]
+django = ["django>=4.2"]
+asyncpg = ["asyncpg>=0.29"]
+test = ["pytest>=7"]
+
+[project.entry-points.pytest11]
+gnomon = "gnomon.pytest_plugin"
+
+[tool.setuptools]
+packages = ["gnomon"]
+
+[tool.setuptools.package-data]
+gnomon = ["tools.json"]

@@ -1,0 +1,146 @@
+{
+  "name": "@bitsinfra/gnomon",
+  "version": "1.0.1",
+  "description": "Gnomon for applications and their agents: runs on branches, review, history, typed diffs, framework tools",
+  "type": "module",
+  "license": "PostgreSQL",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitsinfra/gnomon.git",
+    "directory": "sdk/ts"
+  },
+  "homepage": "https://gnomon.bitsinfra.com/",
+  "bugs": {
+    "url": "https://github.com/bitsinfra/gnomon/issues"
+  },
+  "engines": {
+    "node": ">=22.6"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./pg": {
+      "types": "./dist/pg.d.ts",
+      "import": "./dist/pg.js",
+      "default": "./dist/pg.js"
+    },
+    "./postgres": {
+      "types": "./dist/postgres.d.ts",
+      "import": "./dist/postgres.js",
+      "default": "./dist/postgres.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js",
+      "default": "./dist/testing.js"
+    },
+    "./anthropic": {
+      "types": "./dist/anthropic.d.ts",
+      "import": "./dist/anthropic.js",
+      "default": "./dist/anthropic.js"
+    },
+    "./ai": {
+      "types": "./dist/ai.d.ts",
+      "import": "./dist/ai.js",
+      "default": "./dist/ai.js"
+    },
+    "./openai-agents": {
+      "types": "./dist/openai-agents.d.ts",
+      "import": "./dist/openai-agents.js",
+      "default": "./dist/openai-agents.js"
+    },
+    "./langchain": {
+      "types": "./dist/langchain.d.ts",
+      "import": "./dist/langchain.js",
+      "default": "./dist/langchain.js"
+    },
+    "./claude-agent": {
+      "types": "./dist/claude-agent.d.ts",
+      "import": "./dist/claude-agent.js",
+      "default": "./dist/claude-agent.js"
+    },
+    "./mcp": {
+      "types": "./dist/mcp.d.ts",
+      "import": "./dist/mcp.js",
+      "default": "./dist/mcp.js"
+    },
+    "./prisma": {
+      "types": "./dist/prisma.d.ts",
+      "import": "./dist/prisma.js",
+      "default": "./dist/prisma.js"
+    },
+    "./drizzle": {
+      "types": "./dist/drizzle.d.ts",
+      "import": "./dist/drizzle.js",
+      "default": "./dist/drizzle.js"
+    },
+    "./bun": {
+      "types": "./dist/bun.d.ts",
+      "import": "./dist/bun.js",
+      "default": "./dist/bun.js"
+    },
+    "./kysely": {
+      "types": "./dist/kysely.d.ts",
+      "import": "./dist/kysely.js",
+      "default": "./dist/kysely.js"
+    },
+    "./neon": {
+      "types": "./dist/neon.d.ts",
+      "import": "./dist/neon.js",
+      "default": "./dist/neon.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test test/*.test.ts",
+    "prepack": "npm run build"
+  },
+  "peerDependencies": {
+    "pg": ">=8.11",
+    "postgres": ">=3.4",
+    "ai": ">=5",
+    "@openai/agents": ">=0.4",
+    "@langchain/core": ">=0.3",
+    "@anthropic-ai/claude-agent-sdk": ">=0.1",
+    "zod": ">=3.23"
+  },
+  "peerDependenciesMeta": {
+    "pg": {
+      "optional": true
+    },
+    "postgres": {
+      "optional": true
+    },
+    "ai": {
+      "optional": true
+    },
+    "@openai/agents": {
+      "optional": true
+    },
+    "@langchain/core": {
+      "optional": true
+    },
+    "@anthropic-ai/claude-agent-sdk": {
+      "optional": true
+    },
+    "zod": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "kysely": "^0.29.9",
+    "pg": "^8.13.0",
+    "postgres": "^3.4.5",
+    "typescript": "^5.8.0"
+  }
+}

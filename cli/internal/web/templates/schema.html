@@ -1,0 +1,18 @@
+{{define "schema"}}{{template "head" .}}
+<h1>Schema</h1>
+{{with .D.describe}}<table><tr><th>table</th><th>tracked</th><th>key</th><th>columns</th><th>references</th></tr>
+{{range .tables}}<tr><td>{{.schema}}.{{.name}}{{if truthy .protected}} <span class="tag">protected</span>{{end}}{{if truthy .outbox}} <span class="tag">outbox</span>{{end}}</td>
+<td>{{if truthy .tracked}}yes{{else}}<span class="mute">no</span>{{end}}</td><td>{{json .primary_key}}</td>
+<td>{{range .columns}}{{.name}} <span class="mute">{{.type}}</span>{{if truthy .masked}} <span class="tag">masked</span>{{end}}<br>{{end}}</td>
+<td>{{range .foreign_keys}}{{json .columns}} → {{.references}}<br>{{end}}</td></tr>{{end}}</table>
+{{end}}
+<h2>Schema versions</h2>
+<p class="mute">DDL run on a branch with gnomon.ddl (or gnomon migrate) makes a schema version: the branch and its children read it, main gets it at the merge.</p>
+{{with .D.versions}}<table><tr><th>version</th><th>branch</th><th>changes</th><th>since</th></tr>
+{{range .}}<tr><td>v{{.id}}</td><td><a href="/schema?branch={{.branch}}">{{.branch}}</a></td><td>{{.changes}}</td><td class="mute">{{.created_at}}</td></tr>{{end}}</table>
+{{else}}<p class="mute">No open schema versions.</p>{{end}}
+{{if .D.branch}}<h2>Schema changes on {{.D.branch}}</h2>
+{{with .D.changes}}<table><tr><th>operation</th><th>table</th><th>detail</th><th>statement</th></tr>
+{{range .}}<tr><td>{{.op}}</td><td>{{.table}}</td><td><code>{{json .detail}}</code></td><td><code>{{.sql}}</code></td></tr>{{end}}</table>
+{{else}}<p class="mute">The branch carries no schema changes.</p>{{end}}{{end}}
+{{template "foot" .}}{{end}}

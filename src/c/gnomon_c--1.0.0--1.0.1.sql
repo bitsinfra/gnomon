@@ -1,0 +1,1 @@
+-- The SQL objects of gnomon_c are unchanged in 1.0.1.
