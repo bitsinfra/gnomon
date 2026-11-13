@@ -1,0 +1,6 @@
+{{define "time"}}{{template "head" .}}
+<h1>Time travel</h1>
+<form method="get"><select name="table">{{range .D.tables}}<option {{if eq .table $.D.table}}selected{{end}}>{{.table}}</option>{{end}}</select>
+<input name="branch" placeholder="branch (main)" value="{{.D.branch}}"><input name="at" placeholder="tag:x, a coordinate or a time" value="{{.D.at}}" size="30"><button>Read</button></form>
+{{if .D.columns}}<table><tr>{{range .D.columns}}<th>{{.}}</th>{{end}}</tr>{{range .D.rows}}<tr>{{range .}}<td><code>{{cell .}}</code></td>{{end}}</tr>{{end}}</table><p class="mute">at most 200 rows</p>{{end}}
+{{template "foot" .}}{{end}}

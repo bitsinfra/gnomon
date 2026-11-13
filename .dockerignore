@@ -1,0 +1,13 @@
+# The image is built from these only (docker/Dockerfile)
+*
+!cli/
+!src/
+!tools/
+!docker/
+!Makefile
+!gnomon.control
+cli/gnomon
+src/c/*.o
+src/c/*.so
+src/c/*.dylib
+src/c/*.bc

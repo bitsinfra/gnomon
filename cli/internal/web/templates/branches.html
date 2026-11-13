@@ -1,0 +1,11 @@
+{{define "branches"}}{{template "head" .}}
+<h1>Branches</h1>
+<table><tr><th>branch</th><th>parent</th><th>kind</th><th>status</th><th>by</th><th>behind main</th><th>warnings</th><th>change request</th><th></th></tr>
+{{range .D.branches}}<tr>
+<td><a href="/branch?name={{json .name}}">{{.name}}</a>{{if .attempt_group}} <span class="tag">attempt {{.attempt_group}}</span>{{end}}</td>
+<td>{{.parent}}</td><td>{{.kind}}</td><td>{{.status}}{{if .over_quota}} <span class="bad">over quota</span>{{end}}</td><td>{{.created_by}}</td>
+<td>{{.behind}}</td><td>{{if .warnings}}<span class="bad">{{.warnings}}</span>{{end}}</td>
+<td>{{if .cr}}<a href="/cr/{{.cr}}">#{{.cr}}</a>{{end}}</td>
+<td><a href="/preview?branch={{json .name}}">merge preview</a></td></tr>
+{{else}}<tr><td colspan="9" class="mute">no branches yet</td></tr>{{end}}</table>
+{{template "foot" .}}{{end}}

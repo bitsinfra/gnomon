@@ -1,0 +1,27 @@
+{{define "cr"}}{{template "head" .}}
+{{with .D.status}}
+<h1>#{{.id}} {{.title}}</h1>
+<p class="mute">{{.branch}} → {{.target}} · {{.status}} · opened by {{.opened_by}} · {{if truthy .approved}}approved{{else}}needs {{.required_approvals}} approval(s){{end}}</p>
+{{if .body}}<p>{{.body}}</p>{{end}}
+<p><a href="/branch?name={{.branch}}">changes</a> · <a href="/preview?branch={{.branch}}">merge preview</a></p>
+<h2>Changes</h2>
+<table><tr><th>table</th><th>inserts</th><th>updates</th><th>deletes</th></tr>{{range $.D.summary}}<tr><td>{{.table}}</td><td>{{.inserts}}</td><td>{{.updates}}</td><td>{{.deletes}}</td></tr>{{end}}</table>
+<h2>Checks</h2>
+<table>{{range .checks}}<tr><td>{{.check}}</td><td class="{{if not (truthy .passed)}}bad{{end}}">{{if truthy .passed}}passed{{else}}failed{{end}}</td><td class="mute">{{.detail}}</td></tr>{{else}}<tr><td class="mute">not run on this branch</td></tr>{{end}}</table>
+<h2>Timeline</h2>
+<table>{{range .reviews}}<tr><td class="{{if truthy .stale}}stale{{end}}">{{.reviewer}} {{.verdict}}{{if truthy .stale}} (the branch changed after it){{end}}</td><td>{{.body}}</td><td class="mute">{{.at}}</td></tr>{{end}}
+{{range .comments}}<tr><td>{{.author}} commented{{if .table}} on {{.table}} <code>{{cell .key}}</code>{{if .column}}.{{.column}}{{end}}{{end}}</td><td>{{.body}}</td><td class="mute">{{.at}}</td></tr>{{end}}</table>
+{{if .merge}}<h2>Merged</h2><p>merge {{.merge.id}}: {{.merge.status}} <code>{{cell .merge.stats}}</code>
+{{if eq .merge.status "applied"}} · <a href="/undo-preview?merge={{.merge.id}}">undo…</a>{{end}}</p>{{end}}
+{{if $.Who}}{{if or (eq .status "open") (eq .status "approved")}}
+<h2>Review</h2>
+<form method="post" action="/do/review" style="display: grid; gap: 6px; max-width: 520px">{{template "csrf" $.CSRF}}<input type="hidden" name="cr" value="{{.id}}">
+<textarea name="body" rows="3" placeholder="comment"></textarea>
+<div><button name="verdict" value="approve" class="primary">Approve</button> <button name="verdict" value="reject">Reject</button> <button name="verdict" value="comment">Comment</button></div></form>
+<h2>Comment on a row</h2>
+<form method="post" action="/do/comment" style="display: grid; gap: 6px; max-width: 520px">{{template "csrf" $.CSRF}}<input type="hidden" name="cr" value="{{.id}}">
+<input name="table" placeholder="table"><input name="key" placeholder='key, e.g. {"id": 3}'><input name="col" placeholder="column (optional)"><textarea name="body" rows="2" required></textarea><button>Comment</button></form>
+<h2>Merge</h2>
+<form method="post" action="/do/merge">{{template "csrf" $.CSRF}}<input type="hidden" name="branch" value="{{.branch}}"><label><input type="checkbox" name="close" checked> close the branch</label> <button class="primary">Merge</button></form>
+{{end}}{{end}}{{end}}
+{{template "foot" .}}{{end}}

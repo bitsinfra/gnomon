@@ -1,0 +1,11 @@
+{{define "undo"}}{{template "head" .}}
+<h1>Undo merge {{.D.merge}}</h1>
+<p>What undoing it would do, computed and rolled back:</p>
+<pre id="preview" class="mute">…</pre>
+<form method="post" action="/do/undo">{{template "csrf" .CSRF}}<input type="hidden" name="merge" value="{{.D.merge}}"><button class="primary">Undo the merge</button></form>
+<script>
+fetch('/api/v1/undo-preview?merge={{.D.merge}}').then(r => r.json()).then(j => {
+  document.getElementById('preview').textContent = j.would_fail ? 'It would fail: ' + j.would_fail : JSON.stringify(j.would_revert, null, 2);
+});
+</script>
+{{template "foot" .}}{{end}}

@@ -1,0 +1,16 @@
+// The model the Prisma test (test/orm.test.js) reads and writes on a branch. Generate with
+//   npx prisma generate --schema test/prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+  output   = "./client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model item {
+  id   Int    @id @default(autoincrement())
+  name String
+  qty  Int    @default(0)
+}

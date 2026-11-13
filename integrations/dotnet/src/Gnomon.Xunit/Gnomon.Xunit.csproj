@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>Gnomon.Xunit</PackageId>
+    <Version>1.0.2</Version>
+    <PackageLicenseExpression>PostgreSQL</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/bitsinfra/gnomon</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/bitsinfra/gnomon.git</RepositoryUrl>
+    <Description>An xUnit fixture: a scratch branch of a seeded gnomon database per test class.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.extensibility.core" Version="2.9.2" />
+    <ProjectReference Include="../Gnomon/Gnomon.csproj" />
+  </ItemGroup>
+</Project>

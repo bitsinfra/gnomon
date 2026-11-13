@@ -1,0 +1,63 @@
+name: gnomon database branch
+description: A gnomon branch of your database per pull request - migrate and test against it, get the data diff as a PR comment, drop it when the PR closes.
+branding: { icon: git-branch, color: blue }
+inputs:
+  database-url:
+    description: Connection URL of the database (with the gnomon extension). Use a secret.
+    required: true
+  branch:
+    description: Branch name. Default pr-<number>.
+    required: false
+  parent:
+    description: Branch to fork from.
+    default: main
+  mode:
+    description: "auto (create on open/sync, drop on close), create, comment, drop"
+    default: auto
+  c-module:
+    description: "true if the server loads the gnomon C module (the branch setting alone routes)"
+    default: "false"
+  github-token:
+    description: Token for the PR comment.
+    default: ${{ github.token }}
+  migrations:
+    description: "Migration files (space-separated globs) run on the branch with gnomon migrate: DDL goes through gnomon.ddl, so the schema changes stay on the branch until it is merged"
+    required: false
+  gnomon-version:
+    description: "Released gnomon CLI to download; 'source' builds it from this checkout instead"
+    default: latest
+outputs:
+  branch:
+    description: The branch name.
+    value: ${{ steps.run.outputs.branch }}
+  database-url:
+    description: Connection URL whose sessions start on the branch (pass it to migrations and tests).
+    value: ${{ steps.run.outputs.database-url }}
+  options:
+    description: The libpq options value for the branch.
+    value: ${{ steps.run.outputs.options }}
+runs:
+  using: composite
+  steps:
+    - name: Get gnomon
+      shell: bash
+      env:
+        GNOMON_VERSION: ${{ inputs.gnomon-version }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: bash "$ACTION_PATH/get.sh" "$RUNNER_TEMP/gnomon"
+    - id: run
+      name: gnomon
+      shell: bash
+      env:
+        GNOMON_BIN: ${{ runner.temp }}/gnomon
+        GNOMON_DSN: ${{ inputs.database-url }}
+        GNOMON_BRANCH: ${{ inputs.branch }}
+        GNOMON_PARENT: ${{ inputs.parent }}
+        GNOMON_MODE: ${{ inputs.mode }}
+        GNOMON_C_MODULE: ${{ inputs.c-module }}
+        GNOMON_MIGRATIONS: ${{ inputs.migrations }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_ACTION: ${{ github.event.action }}
+      run: bash "${{ github.action_path }}/run.sh"

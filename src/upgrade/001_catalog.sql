@@ -1,0 +1,3 @@
+-- The catalog tables of src/sql/05_catalog_features.sql, run whole: every statement there is
+-- written IF NOT EXISTS, so an upgrade creates exactly what a fresh install does.
+-- @include src/sql/05_catalog_features.sql

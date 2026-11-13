@@ -1,0 +1,6 @@
+{{define "log"}}{{template "head" .}}
+<h1>Log</h1>
+<table><tr><th>when</th><th>what</th><th>branch</th><th>who</th><th>actor</th><th>why</th><th>detail</th><th></th></tr>
+{{range .D.log}}<tr><td class="mute">{{.at}}</td><td>{{.kind}}</td><td>{{.on_branch}}</td><td>{{.who}}</td><td>{{.actor}}</td><td>{{.reason}}</td><td><code>{{cell .detail}}</code></td>
+<td>{{if eq .kind "merge applied"}}<a href="/undo-preview?merge={{.detail.merge}}">undo…</a>{{end}}</td></tr>{{end}}</table>
+{{template "foot" .}}{{end}}

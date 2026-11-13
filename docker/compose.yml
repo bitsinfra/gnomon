@@ -1,0 +1,26 @@
+# PostgreSQL with gnomon and an example app (examples/app): docker compose -f docker/compose.yml up
+services:
+  db:
+    build: { context: .., dockerfile: docker/Dockerfile }
+    environment:
+      POSTGRES_PASSWORD: gnomon
+      POSTGRES_DB: shop
+      GNOMON_DATABASES: shop
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d shop"]
+      interval: 2s
+      retries: 30
+  review:
+    build: { context: .., dockerfile: docker/Dockerfile }
+    command: ["gnomon", "serve", "--addr", "0.0.0.0:8090", "--mcp"]
+    environment:
+      GNOMON_DSN: postgresql://postgres:gnomon@db:5432/shop
+    ports: ["8090:8090"]
+    depends_on: { db: { condition: service_healthy } }
+  seed:
+    image: postgres:18-bookworm
+    command: ["psql", "-v", "ON_ERROR_STOP=1", "-f", "/examples/shop.sql"]
+    environment: { PGHOST: db, PGUSER: postgres, PGPASSWORD: gnomon, PGDATABASE: shop }
+    volumes: ["../examples:/examples:ro"]
+    depends_on: { db: { condition: service_healthy } }

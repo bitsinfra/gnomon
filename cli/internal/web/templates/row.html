@@ -1,0 +1,10 @@
+{{define "row"}}{{template "head" .}}
+<h1>{{.D.table}} <code>{{.D.key}}</code> on {{.D.branch}}</h1>
+<h2>Blame</h2>
+<table><tr><th>column</th><th>value</th><th>by</th><th>actor</th><th>why</th><th>when</th><th>on</th></tr>
+{{range .D.blame}}<tr><td>{{.col}}</td><td><code>{{cell .value}}</code></td><td>{{.role}}</td><td>{{.actor}}</td><td>{{.reason}}</td><td class="mute">{{.at}}</td><td>{{.on_branch}}</td></tr>{{end}}</table>
+<h2>History</h2>
+<table><tr><th>op</th><th>by</th><th>actor</th><th>why</th><th>when</th><th>on</th><th>row</th><th></th></tr>
+{{range .D.history}}<tr class="{{.op}}"><td>{{.op}}</td><td>{{.role}}</td><td>{{.actor}}</td><td>{{.reason}}</td><td class="mute">{{if .at}}{{.at}}{{else}}after the last tick{{end}}</td><td>{{.on_branch}}</td>
+<td><code>{{cell .row_image}}</code></td><td><a href="/time?table={{$.D.table}}&branch={{$.D.branch}}">table then</a></td></tr>{{end}}</table>
+{{template "foot" .}}{{end}}

@@ -1,0 +1,17 @@
+{{define "graph"}}{{template "head" .}}
+<h1>Graph</h1>
+<form method="get"><input name="table" placeholder="table" value="{{.D.table}}"><input name="key" placeholder='key {"id": 1}' value="{{.D.key}}">
+<input name="branch" placeholder="branch (main)" value="{{.D.branch}}"><input name="at" placeholder="as of" value="{{.D.at}}">
+<select name="depth"><option {{if eq .D.depth 1}}selected{{end}}>1</option><option {{if eq .D.depth 2}}selected{{end}}>2</option><option {{if eq .D.depth 3}}selected{{end}}>3</option></select><button>Show</button></form>
+{{if .D.views}}<p>Saved views: {{range .D.views}}<a href="{{.href}}" title="{{.note}} ({{.created_by}})">{{.name}}</a>
+<form method="post" action="/do/graph-view-drop" class="inline">{{template "csrf" $.CSRF}}<input type="hidden" name="name" value="{{.name}}"><button class="link" title="drop the view">×</button></form> {{end}}</p>{{end}}
+{{if .D.nodes}}<p class="mute">Highlighted rows changed on the branch. Click a row to start from it.</p>
+<form method="post" action="/do/graph-view">{{template "csrf" $.CSRF}}<input type="hidden" name="table" value="{{.D.table}}"><input type="hidden" name="key" value="{{.D.key}}">
+<input type="hidden" name="branch" value="{{.D.branch}}"><input type="hidden" name="at" value="{{.D.at}}"><input type="hidden" name="depth" value="{{.D.depth}}">
+<input name="name" placeholder="name this view" required><input name="note" placeholder="note"><button>Save view</button></form>
+<svg width="{{.D.width}}" height="{{.D.height}}" viewBox="0 0 {{.D.width}} {{.D.height}}">
+{{range .D.edges}}<line x1="{{.X1}}" y1="{{.Y1}}" x2="{{.X2}}" y2="{{.Y2}}"/>{{end}}
+{{range .D.nodes}}<a href="{{.Href}}"><g class="{{.Cls}}"><rect x="{{.X}}" y="{{.Y}}" width="190" height="28" rx="4"/><text x="{{.X}}" y="{{.Y}}" dx="8" dy="18">{{.Label}}</text></g></a>{{end}}
+</svg>
+<table><tr><th>level</th><th>table</th><th>key</th><th>via</th></tr>{{range .D.list}}<tr><td>{{.level}}</td><td>{{.table}}</td><td><a href="/row?table={{json .table}}&key={{cell .key}}&branch={{$.D.branch}}"><code>{{cell .key}}</code></a></td><td>{{.via}}</td></tr>{{end}}</table>{{end}}
+{{template "foot" .}}{{end}}

@@ -1,0 +1,74 @@
+# Git for Postgres data, built for agents
+
+Gnomon is a PostgreSQL extension that gives your database branches, history, merges and undo.
+Give an agent its own branch of your real database, as nothing more than a connection string. See
+every field it changed, merge it into main when it's right, and undo it if it wasn't.
+
+Gnomon runs inside the Postgres you already have. One extension, no copies, no second database.
+
+## Your first branch
+
+[Install the extension](installation.md), then take a branch, change something on it and look at
+what changed:
+
+```sql
+create extension gnomon;
+select gnomon.track('orders');                    -- history starts now, no backfill
+
+select gnomon.create_branch('agent/refunds');
+select gnomon.use('agent/refunds');
+
+-- Every query from here on runs on the branch
+update orders set status = 'refunded' where id = 4182;
+
+select * from gnomon.diff('agent/refunds');       -- every row and field it changed
+select gnomon.merge('agent/refunds');             -- three-way, type-aware, conflicts as rows
+select gnomon.undo_merge(1);                      -- and back
+```
+
+A branch reads everything from main and keeps only what it changes, so it opens instantly and
+copies nothing, however big your database is. Your application doesn't change: point a session at a
+branch and the queries it already runs read and write the branch instead of main.
+
+[Follow the tutorial →](tutorial.md)
+
+## Hand one to an agent
+
+One command gives an agent a database role, a branch of its own and a connection string. It reads
+and writes its branch, and the database refuses the rest, main included, even when the agent asks
+for it by name.
+
+```bash
+gnomon agent create support-bot
+```
+
+Merging is for the people you choose, or for an agent within rules you write: at most twenty rows,
+only these tables, every check passing. Postgres enforces them, whatever the agent is told.
+
+[Agents →](agents.md) · [The MCP server →](mcp.md)
+
+## Build it into your product
+
+The TypeScript and Python SDKs give each task your agents take on a run: a branch of its own, with
+limits already set. Merge it, send it for review, or let it go.
+
+```bash
+npm install @bitsinfra/gnomon      # TypeScript
+pip install gnomon-postgres        # Python
+```
+
+Bindings for Node, Go, Ruby, Java, Elixir, .NET and PHP put your application's sessions and tests
+on a branch, through the drivers and ORMs you already use.
+
+[Runs and the SDKs →](sdk.md) · [Install the SDK for your language →](installation.md#sdks-and-bindings)
+
+## Where to go next
+
+- [Concepts](concepts.md): branches, coordinates and how a merge decides.
+- [Branches](branches.md): what works on a branch, and how a branch write behaves.
+- [Merges](merges.md): counts that add up, JSON merged key by key, conflicts as rows, undo.
+- [Review](review.md): diffs, change requests, checks and approvals that go stale.
+- [History](history.md): read any moment exactly, blame a field, bisect a failing check.
+- [The change feed](feed.md): every change, in order, to Kafka, NATS, a webhook or a file.
+- [SQL reference](sql-reference.md) and [CLI reference](cli.md).
+- [Operations](operations.md) and [security](security.md) when you put it into production.

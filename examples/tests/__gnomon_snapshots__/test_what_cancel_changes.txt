@@ -1,0 +1,2 @@
+public.orders <orders:1> update status: "new" -> "cancelled"
+public.products <products:1> update stock: 100 -> 103

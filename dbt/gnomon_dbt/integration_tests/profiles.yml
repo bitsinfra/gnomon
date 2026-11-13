@@ -1,0 +1,12 @@
+gnomon_it:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('PGHOST') }}"
+      port: "{{ env_var('PGPORT') | int }}"
+      user: postgres
+      password: ""
+      dbname: "{{ env_var('GNOMON_DBT_DB') }}"
+      schema: dbt
+      threads: 1
