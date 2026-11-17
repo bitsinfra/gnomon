@@ -13,4 +13,10 @@ bad=$(q -c "select count(*) from (select gn_key, lag(gn_key) over (order by gn_k
                                           lag((gn_key & 281474976710655) - gn_xoff) over (order by gn_key, gn_lsn) px from _gnomon.k__v where gn_flags & 32 = 0) s
             where s.gn_key < s.p or (s.px is not null and (s.gn_key & 281474976710655) <= s.px)")
 [ "$bad" = "0" ] || fail "$bad versions out of order"
+PY="$ROOT/build/venv/bin/python"
+if [ -x "$PY" ] && "$PY" -c 'import psycopg' 2>/dev/null; then
+  "$PY" "$ROOT/test/shell/key_ordering.py" "$DB"
+else
+  echo "skip key reuse: needs build/venv with psycopg"
+fi
 echo ok

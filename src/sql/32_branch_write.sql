@@ -273,10 +273,6 @@ begin
   ins := coalesce(ins, false);
   IF NOT ins THEN
     PERFORM 1 FROM @BK@ k WHERE k.gn_branch = c.branch AND @EQ_K@ FOR UPDATE;
-    -- stamp again now that the lock is held: the previous writer of this key on this branch has
-    -- committed, so this snapshot's xmax is past its xid (keys along a row never decrease; a stamp taken before a
-    -- lock wait can order this version before the one it follows)
-    st := gnomon._stamp();
   END IF;
   SELECT @HCOLS@ INTO h FROM @B@ b WHERE b.gn_branch = c.branch AND @EQ_B@;
   hfound := FOUND;
@@ -339,6 +335,10 @@ begin
   END IF;@RESET@
   IF fl = 2 AND current_setting('gnomon._lockonly', true) = '1' THEN fl := 18; END IF;   -- a copy taken to lock the row
   -- 5. history
+  -- The head write has acquired its locks. A reused key may follow a concurrent delete that a
+  -- REPEATABLE READ / SERIALIZABLE snapshot cannot see; locking the unchanged touched-key row
+  -- does not refresh that snapshot. Stamp every write freshly so later writes never go backwards.
+  st := gnomon._stamp_fresh(gnomon._stamp());
   INSERT INTO @BV@ (@ALL@, gn_branch, gn_key, gn_xoff, gn_lsn, gn_role, gn_flags)
   VALUES (@ALL_R@, c.branch, st.key, st.xoff, st.lsn, st.role, fl);
   IF coalesce(current_setting('gnomon.actor', true), '') <> '' OR coalesce(current_setting('gnomon.reason', true), '') <> '' THEN

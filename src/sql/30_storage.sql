@@ -447,10 +447,9 @@ begin
   IF coalesce(current_setting('gnomon.actor', true), '') <> '' OR coalesce(current_setting('gnomon.reason', true), '') <> '' THEN
     PERFORM gnomon._log_xact(0);
   END IF;@RIDS@
-  -- an insert under REPEATABLE READ / SERIALIZABLE may follow a delete its snapshot cannot see
-  IF TG_OP = 'INSERT' OR (TG_OP = 'UPDATE' AND NOT @KEYS_SAME@) THEN
-    st := gnomon._stamp_fresh(st); p := @PART@;
-  END IF;
+  -- An insert can follow a concurrent delete invisible to its transaction snapshot. Every
+  -- later update or delete must also stay after that insert's fresh stamp, including our own.
+  st := gnomon._stamp_fresh(st); p := @PART@;
   IF TG_OP = 'INSERT' THEN
     INSERT INTO @V@ (@VK@, gn_key, gn_xoff, gn_lsn, gn_role, gn_flags, gn_part, gn_mask@VALCOLS@)
     VALUES (@VK_NEW@, st.key, st.xoff, st.lsn, st.role, 9, p, @ONES@@VALS_NEW@);
@@ -528,11 +527,9 @@ begin
   IF coalesce(current_setting('gnomon.actor', true), '') <> '' OR coalesce(current_setting('gnomon.reason', true), '') <> '' THEN
     PERFORM gnomon._log_xact(0);
   END IF;
-  -- inserts under REPEATABLE READ / SERIALIZABLE may follow deletes their snapshot cannot see;
-  -- AFTER triggers fire once the statement's rows are all written, so one fresh stamp covers them
-  IF TG_OP IN ('INSERT', 'UPDATE') THEN
-    st := gnomon._stamp_fresh(st); p := gnomon._part(st.key, @SPAN@);
-  END IF;
+  -- AFTER triggers run with the rows already written and locked. One fresh stamp covers the
+  -- statement, including deletes after an insert or update that advanced the history clock.
+  st := gnomon._stamp_fresh(st); p := gnomon._part(st.key, @SPAN@);
   IF TG_OP = 'INSERT' THEN
     INSERT INTO @V@ (@VK@, gn_key, gn_xoff, gn_lsn, gn_role, gn_flags, gn_part, gn_mask@VALCOLS@)
     SELECT @S_VK_N@, st.key, st.xoff, st.lsn, st.role, 9, p, @ONES@@S_VALS_N@ FROM n;
