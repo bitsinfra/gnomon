@@ -42,14 +42,20 @@ for module in cli integrations/go; do
 done
 
 # The guide's unpinned installs must give users the same version as the CLI and SQL downloads.
-mkdir npm
+# Registries can accept publication before their install indexes update. Retry actual installs in
+# fresh projects: metadata endpoints can show the new version while npm/pip still install the old.
+# Each command propagates failures explicitly because this function is called in an until condition.
+install_sdks() (
+install=$(mktemp -d "$scratch/sdks.XXXXXX") || return
+cd "$install" || return
+mkdir npm || return
 (
-  cd npm
+  cd npm || return
   export NPM_CONFIG_USERCONFIG="$scratch/npmrc" NPM_CONFIG_GLOBALCONFIG="$scratch/global-npmrc"
-  export NPM_CONFIG_CACHE="$scratch/npm-cache"
-  touch "$NPM_CONFIG_USERCONFIG" "$NPM_CONFIG_GLOBALCONFIG"
-  npm init -y >/dev/null
-  npm install --registry=https://registry.npmjs.org --no-audit --no-fund @bitsinfra/gnomon @bitsinfra/gnomon-postgres
+  export NPM_CONFIG_CACHE="$install/npm-cache"
+  touch "$NPM_CONFIG_USERCONFIG" "$NPM_CONFIG_GLOBALCONFIG" || return
+  npm init -y >/dev/null || return
+  npm install --registry=https://registry.npmjs.org --no-audit --no-fund @bitsinfra/gnomon @bitsinfra/gnomon-postgres || return
   node --input-type=module - "$version" <<'JS'
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -63,9 +69,9 @@ for (const name of ['gnomon', 'gnomon-postgres']) {
 }
 for (const fn of [Gnomon, nodePostgres, binding.branchOptions]) assert.equal(typeof fn, 'function');
 JS
-)
-python3 -m venv venv
-venv/bin/python -m pip --isolated install --no-cache-dir --disable-pip-version-check --index-url https://pypi.org/simple gnomon-postgres
+) || return
+python3 -m venv venv || return
+venv/bin/python -m pip --isolated install --no-cache-dir --disable-pip-version-check --index-url https://pypi.org/simple gnomon-postgres || return
 venv/bin/python -I - "$version" <<'PY'
 import sys
 from importlib.metadata import version
@@ -73,6 +79,16 @@ from gnomon import Gnomon
 assert version('gnomon-postgres') == sys.argv[1]
 assert callable(Gnomon)
 PY
+)
+deadline=$((SECONDS + 600))
+until install_sdks; do
+  if (( SECONDS >= deadline )); then
+    echo "Public SDK installs did not pass for $version within ten minutes" >&2
+    exit 1
+  fi
+  echo "Waiting for public SDK installs of $version; retrying in 15 seconds"
+  sleep 15
+done
 
 start_database() {
   local image=$1

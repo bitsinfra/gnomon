@@ -128,7 +128,8 @@ The version must match the extension and SDKs. The tag builds and tests the rele
 `ghcr.io/bitsinfra/gnomon/postgres`, the tested npm and Python packages, and the GitHub
 release with the signed provenance, binaries, formula and checksums. A final `public-install` job
 downloads the public CLI and SQL installers, checks both Go module tags through the public proxy,
-installs the SDKs from npm and PyPI in fresh environments, and pulls the image anonymously. It runs
+waits up to ten minutes for registry publication to become visible, installs the SDKs from npm
+and PyPI in fresh environments, and pulls the image anonymously. It runs
 branch, diff, merge and undo against both that image and the public plain-SQL installer on stock
 Postgres. Run the same check locally with `bash tools/smoke-public-release.sh <version>` (Docker,
 Node 22.6+, Python 3.11+, curl and shasum). New GHCR packages may need public visibility before
