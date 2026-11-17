@@ -126,7 +126,13 @@ set `GNOMON_RELEASE_SSH_SIGNERS` to the authorized SSH allowed-signers entry and
 signed, annotated `v<version>` tag.
 The version must match the extension and SDKs. The tag builds and tests the release files. Separate jobs publish the container to
 `ghcr.io/bitsinfra/gnomon/postgres`, the tested npm and Python packages, and the GitHub
-release with the signed provenance, binaries, formula and checksums. Verify anonymous image
-pulls (new GHCR packages may need public visibility) and fresh registry installs before promoting
-the product page and docs. The other bindings' packages are attached to the GitHub release,
-with their checksums in `checksums.txt`.
+release with the signed provenance, binaries, formula and checksums. A final `public-install` job
+downloads the public CLI and SQL installers, checks both Go module tags through the public proxy,
+installs the SDKs from npm and PyPI in fresh environments, and pulls the image anonymously. It runs
+branch, diff, merge and undo against both that image and the public plain-SQL installer on stock
+Postgres. Run the same check locally with `bash tools/smoke-public-release.sh <version>` (Docker,
+Node 22.6+, Python 3.11+, curl and shasum). New GHCR packages may need public visibility before
+this check passes. Wait for the entire release workflow, including this job, before promoting the
+product page and docs; a green manual rehearsal has not published anything. Keep installation
+examples on the last publicly verified version until the new release passes. The other bindings'
+packages are attached to the GitHub release, with their checksums in `checksums.txt`.

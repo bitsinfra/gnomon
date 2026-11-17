@@ -146,3 +146,16 @@ jobs:
             notes_args=(--notes "CLI, packages and SQL installers. See https://gnomon.bitsinfra.com/installation/ for installation instructions.")
           fi
           gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Gnomon $version" "${notes_args[@]}"
+  public-install:
+    if: github.event_name == 'push'
+    needs: [image, npm, pypi, github-release]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.13' }
+      - name: Install from public downloads and run the quickstart
+        run: bash tools/smoke-public-release.sh "${GITHUB_REF_NAME#v}"
